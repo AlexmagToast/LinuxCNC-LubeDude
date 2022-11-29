@@ -1,6 +1,6 @@
 # Lubedude
 By Alexander Richter, info@theartoftinkering.com 2022
-
+please consider supporting me on Patreon: patreon.com/theartoftinkering
 
 My CNC Machine has a central lubrication unit, which needs to pump for a couple seconds every two minutes. 
 i created this module to make driving it with LinuxCNC easy. 

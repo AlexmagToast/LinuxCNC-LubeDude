@@ -1,9 +1,7 @@
 #!/usr/bin/python3.9
-import time, hal
-
+import time#, hal
 #	LubeDude for LinuxCNC
 #	By Alexander Richter, info@theartoftinkering.com 2022
-
 #	This program is free software; you can redistribute it and/or modify
 #	it under the terms of the GNU General Public License as published by
 #	the Free Software Foundation; either version 2 of the License, or
@@ -14,61 +12,85 @@ import time, hal
 #	See the GNU General Public License for more details.
 #	You should have received a copy of the GNU General Public License
 #	along with this program; if not, write to the Free Software
-#	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  US
 
 
 c = hal.component("lubedude") #name that we will cal pins from in hal
 #Pin Setup
 
 #Inputs 
-
-# i have a Button with an LED for manual lube action
-c.newpin("LubeBtn", hal.HAL_BIT, hal.HAL_IN)
-c.newpin("LubeBtnLED", hal.HAL_BIT, hal.HAL_IN)
+# Button with an LED for manual lube action
+c.newpin("manualLube", hal.HAL_BIT, hal.HAL_IN)
+c.newpin("SignalLED", hal.HAL_BIT, hal.HAL_IN)
 # also there is a sensor which senses if the lube container is empty
 c.newpin("LubeFill", hal.HAL_BIT, hal.HAL_IN)
-
-#execute code if this is true:
-c.newpin("moveSpeed", hal.HAL_FLOAT, hal.HAL_IN)
 
 #Outputs 
 # Lube Pump is controlled with a Realis
 c.newpin("LubePump", hal.HAL_BIT, hal.HAL_IN)
 
+#execute code if this is true:
+movevel = hal.get_val("XYZvel.out")
 #Logic
-
-timeon = 10 #seconds turning the pump on
-
-automodetimer = 180 #seconds have to pass to turn Pump on again if in automode
-
-blinkLED = 1 # blink LED if Tank is empty turn 0 if you want steady light.
-
-# Global Variables
-constanttime = 2 
-autolubemode = 0
-lubeemtpy = 0
-timeonT = time.time()
-automodetimerT = time.time()
-Debug = 1
 
 c.ready()
 
-def Lubeaction(newtime):
-    while 1 != (newtime + timeon < time.time()):
-					print("lubing")
+pumpon = 5 #seconds turning the pump on
+pumpdelay = 2 #wait at least 2 secs between pump cycles
+pumpcycle = 15 #seconds have to pass to turn Pump on again if in automode
 
 
-def autotimer(event):
-    return event + automodetimer < time.time()	
+# Global Variables
 
+isready = 1
+movetime = 0
+
+Debug = 0
+
+if Debug:
+	manualPump = 1
+	movevel = 1
+counter = time.time()
+
+
+def seconds(counter):
+    return counter + 1 < time.time()
 
 while True:
 
-	while c.LubeBtn == 1: #if button is pressed
-		c.LubeBtnLED = 1 #turn LED on
-		if Lubeaction(timeon):
-			c.LubePump = 1 #turn Pump on
-		if Debug == 1: print ("turning LubePump on")
+	if movevel > 0:
+		
+		if seconds(counter):
+			movetime += 1
+			counter = time.time()
+			print (movetime)
 
+	if movetime == 0 and isready:
+		c.LubePump = 1
+		print ("lubeon")
+		isready = 0
+	
+	if movetime == pumpon:
+		print ("lubeoff")
+		c.LubePump = 0
 
-		event = time.time()
+		
+	if movetime == pumpon + pumpdelay and isready == 0:
+		isready = 1
+		print ("ready")
+
+	if movetime > pumpcycle:
+		movetime = 0
+		isready = 1
+
+	if c.manualLube and isready:
+		movetime = 0
+
+	if c.manualLube:
+		if (movetime % 2) == 0:
+			c.SignalLED = 1
+		else:
+			c.SignalLED = 0
+
+	if c.LubeFill == 1 and not c.manualLube:
+		c.SignalLED = 1
