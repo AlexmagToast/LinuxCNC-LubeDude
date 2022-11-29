@@ -2,7 +2,7 @@
 import time, hal
 #	LubeDude for LinuxCNC
 #	By Alexander Richter, info@theartoftinkering.com 2022
-#
+#	Please consider supporting me on Patreon.com/theartoftinkering
 #
 #	This Program provides support for Central Lubrication Units.
 #	Currently supported is a Pump which is run 10 sec to build pressure and then shut off. 
