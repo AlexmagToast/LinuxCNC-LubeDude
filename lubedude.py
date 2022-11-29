@@ -1,7 +1,22 @@
 #!/usr/bin/python3.9
-import time#, hal
+import time, hal
 #	LubeDude for LinuxCNC
 #	By Alexander Richter, info@theartoftinkering.com 2022
+#
+#
+#	This Program provides support for Central Lubrication Units.
+#	Currently supported is a Pump which is run 10 sec to build pressure and then shut off. 
+# 	 The Software reads from LinuxCNC if any Axis are moving. After a time of configurable Seconds of movement 
+#	the Pump is turned on again. It doesn't run if the machine is not moving.
+#
+#	There is a pin for Manual Lube pumping, which will also trigger a lube cycle and, if triggered while the machine moves
+#	resets the timer, so the Pump won't run until the specified time has passed after. 
+#
+#
+#	Also a Fill sensor is supported, but it only triggers the Signal LED constantly at the moment. 
+#
+#
+#
 #	This program is free software; you can redistribute it and/or modify
 #	it under the terms of the GNU General Public License as published by
 #	the Free Software Foundation; either version 2 of the License, or
@@ -19,25 +34,19 @@ c = hal.component("lubedude") #name that we will cal pins from in hal
 #Pin Setup
 
 #Inputs 
-# Button with an LED for manual lube action
 c.newpin("manualLube", hal.HAL_BIT, hal.HAL_IN)
-c.newpin("SignalLED", hal.HAL_BIT, hal.HAL_IN)
-# also there is a sensor which senses if the lube container is empty
+c.newpin("SignalLED", hal.HAL_BIT, hal.HAL_OUT)
 c.newpin("LubeFill", hal.HAL_BIT, hal.HAL_IN)
+#Outputs
+c.newpin("LubePump", hal.HAL_BIT, hal.HAL_OUT)
 
-#Outputs 
-# Lube Pump is controlled with a Realis
-c.newpin("LubePump", hal.HAL_BIT, hal.HAL_IN)
-
-#execute code if this is true:
-movevel = hal.get_val("XYZvel.out")
-#Logic
 
 c.ready()
 
-pumpon = 5 #seconds turning the pump on
+
+pumpon = 10 #seconds turning the pump on
 pumpdelay = 2 #wait at least 2 secs between pump cycles
-pumpcycle = 15 #seconds have to pass to turn Pump on again if in automode
+pumpcycle = 120 #seconds have to pass to turn Pump on again if axis are moving
 
 
 # Global Variables
@@ -45,11 +54,6 @@ pumpcycle = 15 #seconds have to pass to turn Pump on again if in automode
 isready = 1
 movetime = 0
 
-Debug = 0
-
-if Debug:
-	manualPump = 1
-	movevel = 1
 counter = time.time()
 
 
@@ -57,40 +61,36 @@ def seconds(counter):
     return counter + 1 < time.time()
 
 while True:
-
-	if movevel > 0:
-		
+	movevel = hal.get_value("XYZvel")
+	if movevel != 0 or not isready:
+		if movetime == 0 and isready:
+			c.LubePump = 1
+			isready = 0
+			
 		if seconds(counter):
 			movetime += 1
 			counter = time.time()
 			print (movetime)
 
-	if movetime == 0 and isready:
-		c.LubePump = 1
-		print ("lubeon")
-		isready = 0
-	
 	if movetime == pumpon:
-		print ("lubeoff")
 		c.LubePump = 0
 
 		
 	if movetime == pumpon + pumpdelay and isready == 0:
 		isready = 1
-		print ("ready")
 
 	if movetime > pumpcycle:
 		movetime = 0
 		isready = 1
 
-	if c.manualLube and isready:
-		movetime = 0
+	if c.manualLube == 1 and isready:
+		if isready: movetime = 0
+		c.LubePump = 1
+		
+		isready = 0
 
-	if c.manualLube:
-		if (movetime % 2) == 0:
-			c.SignalLED = 1
-		else:
-			c.SignalLED = 0
 
-	if c.LubeFill == 1 and not c.manualLube:
+	if c.LubeFill == 1 or c.LubePump == 1:
 		c.SignalLED = 1
+	else:
+		c.SignalLED = 0
