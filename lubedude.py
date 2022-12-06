@@ -1,4 +1,4 @@
-#!/usr/bin/python3.9
+#!/usr/bin/python3
 import time, hal
 #	LubeDude for LinuxCNC
 #	By Alexander Richter, info@theartoftinkering.com 2022
@@ -76,7 +76,7 @@ counter = time.time()
 def seconds(counter):
     return counter + 1 < time.time()
 try:
-	if not hal.get_value("estop-out"):
+	if not hal.get_value("estop-loop"):
 		isready = 1
 		movetime = 0
 
