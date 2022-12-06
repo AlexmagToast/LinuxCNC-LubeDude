@@ -76,7 +76,7 @@ counter = time.time()
 def seconds(counter):
     return counter + 1 < time.time()
 try:
-	if not hal.get_value("estop-loop"):
+	if hal.get_value("estop-loop"):
 		isready = 1
 		movetime = 0
 
