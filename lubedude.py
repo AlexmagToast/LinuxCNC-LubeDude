@@ -24,7 +24,7 @@ import time, hal
 #
 #
 #	Install:
-#	- currently tested on LinuxCNC pre 2.9 with Python 3.9
+#	- currently tested on LinuxCNC ~pre 2.9 with Python 3.9
 #	- download and extract lubedude.py to your system
 #	- make it executable as program 
 #	- copy it to /usr/bin and delete the .ty extension so its just "lubedude"
@@ -75,46 +75,49 @@ counter = time.time()
 
 def seconds(counter):
     return counter + 1 < time.time()
-try:
-	if hal.get_value("estop-loop"):
-		isready = 1
-		movetime = 0
 
-		counter = time.time()
-	while True:
-		movevel = hal.get_value("motion.current-vel")
-		if movevel != 0 or not isready:
-			if movetime == 0 and isready:
-				c.LubePump = 1
-				isready = 0
-				
-			if seconds(counter):
-				movetime += 1
-				counter = time.time()
-				print (movetime)
 
-		if movetime == pumpon:
-			c.LubePump = 0
+if __mame__ == "__main__":
 
-			
-		if movetime == pumpon + pumpdelay and isready == 0:
+	try:
+		if hal.get_value("estop-loop"):
 			isready = 1
-
-		if movetime > pumpcycle:
 			movetime = 0
-			isready = 1
 
-		if c.manualLube == 1 and isready:
-			if isready: movetime = 0
-			c.LubePump = 1
-			
-			isready = 0
+			counter = time.time()
+		while True:
+			movevel = hal.get_value("motion.current-vel")
+			if movevel != 0 or not isready:
+				if movetime == 0 and isready:
+					c.LubePump = 1
+					isready = 0
+					
+				if seconds(counter):
+					movetime += 1
+					counter = time.time()
+
+			if movetime == pumpon:
+				c.LubePump = 0
+
+				
+			if movetime == pumpon + pumpdelay and isready == 0:
+				isready = 1
+
+			if movetime > pumpcycle:
+				movetime = 0
+				isready = 1
+
+			if c.manualLube == 1 and isready:
+				if isready: movetime = 0
+				c.LubePump = 1
+				
+				isready = 0
 
 
-		if c.LubeFill == 1 or c.LubePump == 1:
-			c.SignalLED = 1
-		else:
-			c.SignalLED = 0
- 
-except KeyboardInterrupt:
-    raise SystemExit		
+			if c.LubeFill == 1 or c.LubePump == 1:
+				c.SignalLED = 1
+			else:
+				c.SignalLED = 0
+	
+	except KeyboardInterrupt:
+		raise SystemExit		
